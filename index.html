@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<!--
+  TechCalc Pro - Advanced Scientific Calculator
+  
+  This is a feature-rich scientific calculator built with Vue.js that includes:
+  - Basic and advanced calculation modes
+  - Trigonometric functions with exact fraction values for special angles
+  - Fraction/decimal conversion and display
+  - Advanced mathematical functions
+  - Responsive design for desktop and mobile devices
+  - Animated UI with particle effects and transitions
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TechCalc Pro</title>
+  <!-- External CSS libraries -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600&family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <meta name="theme-color" content="#0f0f1a">
+</head>
+<body>
+  <div id="app">
+    <!-- Header section with title and mode toggle -->
+    <div class="header">
+      <div class="header-title"><i class="fas fa-microchip"></i> TECH<span style="color: #11f1d4;">CALC</span></div>
+      <div class="toggle-container">
+        <span class="toggle-label" :class="{ active: isBasicMode }">Basic</span>
+        <label class="toggle-switch" title="Switch between Basic and Advanced mode">
+          <input type="checkbox" :checked="!isBasicMode" @change="toggleMode">
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label" :class="{ active: !isBasicMode }">Advanced</span>
+      </div>
+    </div>
+
+    <!-- Main calculator container -->
+    <div class="calculator">
+      <!-- Display area for showing expressions and results -->
+      <div class="display-container">
+        <!-- Main display with dynamic font size based on content length -->
+        <div class="display" :style="{ fontSize: current && current.length > 10 ? (current.length > 15 ? '26px' : '32px') : '42px' }">
+          <span v-text="current || '0'"></span>
+          <div class="cursor" v-if="!current"></div>
+        </div>
+        <!-- Secondary display for showing fraction representation in decimal mode -->
+        <div class="fraction-display" :class="{ visible: fractionValue && !isFractionMode }">{{ fractionValue }}</div>
+        <!-- Mode indicator that shows when in fraction mode -->
+        <div class="display-mode-indicator" v-if="isFractionMode">FRAC</div>
+      </div>
+
+      <!-- Keypad area that changes based on calculator mode -->
+      <div class="keypad" :class="{ 'basic': isBasicMode, 'advanced': !isBasicMode }">
+        <template v-if="isBasicMode">
+          <!-- Basic Mode Keypad (Square layout) -->
+          <button class="button special" @click="clear" data-tooltip="Clear"><span>AC</span></button>
+          <button class="button special" @click="backspace" data-tooltip="Delete"><span><i class="fas fa-backspace"></i></span></button>
+          <button class="button special" @click="percentage" data-tooltip="Percent"><span>%</span></button>
+          <button class="button operator" @click="press('/')" data-tooltip="Divide"><span>÷</span></button>
+
+          <button class="button" @click="press('7')"><span>7</span></button>
+          <button class="button" @click="press('8')"><span>8</span></button>
+          <button class="button" @click="press('9')"><span>9</span></button>
+          <button class="button operator" @click="press('*')" data-tooltip="Multiply"><span>×</span></button>
+
+          <button class="button" @click="press('4')"><span>4</span></button>
+          <button class="button" @click="press('5')"><span>5</span></button>
+          <button class="button" @click="press('6')"><span>6</span></button>
+          <button class="button operator" @click="press('-')" data-tooltip="Subtract"><span>−</span></button>
+
+          <button class="button" @click="press('1')"><span>1</span></button>
+          <button class="button" @click="press('2')"><span>2</span></button>
+          <button class="button" @click="press('3')"><span>3</span></button>
+          <button class="button operator" @click="press('+')" data-tooltip="Add"><span>+</span></button>
+
+          <button class="button" @click="toggleSign" data-tooltip="Change Sign"><span>±</span></button>
+          <button class="button" @click="press('0')"><span>0</span></button>
+          <button class="button" @click="press('.')"><span>.</span></button>
+          <button class="button equals" @click="calculate" data-tooltip="Calculate"><span>=</span></button>
+        </template>
+
+        <template v-else>
+          <!-- Advanced Mode Keypad (Rectangular layout) with scientific functions -->
+          <!-- Row 1 - Mode controls and special functions -->
+          <button class="button function angle-mode" @click="toggleAngleMode" data-tooltip="Toggle Angle Mode"><span>{{ isDegrees ? 'DEG' : 'RAD' }}</span></button>
+          <button class="button fraction" @click="toggleFractionMode" data-tooltip="Toggle Fraction/Decimal"><span>S<i class="fas fa-exchange-alt"></i>D</span></button>
+          <button class="button special" @click="clear" data-tooltip="Clear"><span>AC</span></button>
+          <button class="button special" @click="backspace" data-tooltip="Delete"><span><i class="fas fa-backspace"></i></span></button>
+          <button class="button special" @click="percentage" data-tooltip="Percent"><span>%</span></button>
+
+          <!-- Row 2 - Trigonometric functions -->
+          <button class="button function" @click="pressTrig('sin')" data-tooltip="Sine"><span>sin</span></button>
+          <button class="button function" @click="pressTrig('cos')" data-tooltip="Cosine"><span>cos</span></button>
+          <button class="button function" @click="pressTrig('tan')" data-tooltip="Tangent"><span>tan</span></button>
+          <button class="button function" @click="press('(')" data-tooltip="Open Parenthesis"><span>(</span></button>
+          <button class="button function" @click="press(')')" data-tooltip="Close Parenthesis"><span>)</span></button>
+
+          <!-- Row 3 - Advanced math functions -->
+          <button class="button function" @click="factorial" data-tooltip="Factorial"><span>x!</span></button>
+          <button class="button function" @click="press('x^2')" data-tooltip="Square"><span>x²</span></button>
+          <button class="button function" @click="press('^')" data-tooltip="Power"><span>x<sup>y</sup></span></button>
+          <button class="button function" @click="press('sqrt')" data-tooltip="Square Root"><span><i class="fas fa-square-root-alt"></i></span></button>
+          <button class="button operator" @click="press('/')" data-tooltip="Divide"><span>÷</span></button>
+
+          <!-- Row 4 - Constants and numbers -->
+          <button class="button function" @click="press('pi')" data-tooltip="Pi"><span>π</span></button>
+          <button class="button" @click="press('7')"><span>7</span></button>
+          <button class="button" @click="press('8')"><span>8</span></button>
+          <button class="button" @click="press('9')"><span>9</span></button>
+          <button class="button operator" @click="press('*')" data-tooltip="Multiply"><span>×</span></button>
+
+          <!-- Row 5 - More functions and numbers -->
+          <button class="button function" @click="reciprocal" data-tooltip="Reciprocal"><span>1/x</span></button>
+          <button class="button" @click="press('4')"><span>4</span></button>
+          <button class="button" @click="press('5')"><span>5</span></button>
+          <button class="button" @click="press('6')"><span>6</span></button>
+          <button class="button operator" @click="press('-')" data-tooltip="Subtract"><span>−</span></button>
+
+          <!-- Row 6 - Constants and numbers -->
+          <button class="button function" @click="press('e')" data-tooltip="Euler's Number"><span>e</span></button>
+          <button class="button" @click="press('1')"><span>1</span></button>
+          <button class="button" @click="press('2')"><span>2</span></button>
+          <button class="button" @click="press('3')"><span>3</span></button>
+          <button class="button operator" @click="press('+')" data-tooltip="Add"><span>+</span></button>
+
+          <!-- Row 7 - Logarithms and equals -->
+          <button class="button function" @click="press('log')" data-tooltip="Log Base 10"><span>log</span></button>
+          <button class="button function" @click="press('ln')" data-tooltip="Natural Log"><span>ln</span></button>
+          <button class="button" @click="press('0')"><span>0</span></button>
+          <button class="button" @click="press('.')"><span>.</span></button>
+          <button class="button equals" @click="calculate" data-tooltip="Calculate"><span>=</span></button>
+        </template>
+      </div>
+    </div>
+    
+    <!-- Footer section -->
+    <div class="footer">
+      <span class="copyright">© <span style="color: #11f1d4;">TechCalc</span> <script>document.write(new Date().getFullYear())</script> | <i class="fas fa-code"></i> with <i class="fas fa-heart" style="color: #ff0066;"></i></span>
+    </div>
+  </div>
+
+  <!-- JavaScript libraries and main application script -->
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.14/vue.min.js'></script>
+  <script src="script.js"></script>
+</body>
+</html>
